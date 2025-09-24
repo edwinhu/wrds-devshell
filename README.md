@@ -12,7 +12,6 @@ This project creates a single, portable executable containing all essential deve
 - **tabiew** (`tw`) - View and query CSV/TSV files
 - **xan** - CSV processing tool
 - **jq** - JSON processor
-- **gtabview** - Alternative CSV viewer
 
 ### File & Search
 - **bat** - Cat with syntax highlighting
