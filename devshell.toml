@@ -64,6 +64,73 @@ package = "direnv"
 help = "Environment variable management"
 category = "shell"
 
+
+[[commands]]
+package = "btop"
+help = "Resource monitor"
+category = "system"
+
+[[commands]]
+package = "dust"
+help = "Disk usage analyzer"
+category = "system"
+
+[[commands]]
+package = "gh"
+help = "GitHub CLI"
+category = "development"
+
+[[commands]]
+package = "p7zip"
+help = "7-Zip compression"
+category = "compression"
+
+[[commands]]
+package = "parallel"
+help = "GNU parallel command execution"
+category = "utility"
+
+[[commands]]
+package = "poppler_utils"
+help = "PDF manipulation tools"
+category = "document"
+
+[[commands]]
+package = "resvg"
+help = "SVG renderer"
+category = "graphics"
+
+[[commands]]
+package = "stow"
+help = "Symlink farm manager"
+category = "system"
+
+[[commands]]
+package = "tailspin"
+help = "Log file highlighter"
+category = "utility"
+
+[[commands]]
+package = "tectonic"
+help = "Modern TeX/LaTeX engine"
+category = "document"
+
+[[commands]]
+package = "tealdeer"
+name = "tldr"
+help = "Simplified man pages"
+category = "documentation"
+
+[[commands]]
+package = "xan"
+help = "CSV toolkit"
+category = "data"
+
+[[commands]]
+package = "yazi"
+help = "Terminal file manager"
+category = "file"
+
 [devshell.startup.wrds-motd]
 text = '''
 echo "🚀 WRDS DevShell loaded with portable tools"
