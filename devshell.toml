@@ -123,6 +123,12 @@ package = "rclone"
 help = "Cloud storage sync"
 category = "sync"
 
+[[commands]]
+package = "tailspin"
+name = "tspin"
+help = "Log file highlighter with colors"
+category = "file"
+
 [devshell.startup.wrds-motd]
 text = '''
 echo "🚀 WRDS DevShell loaded with portable tools"

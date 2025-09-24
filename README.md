@@ -23,6 +23,7 @@ This project creates a single, portable executable containing all essential deve
 - **dust** - Disk usage analyzer
 - **p7zip** - Archive utility
 - **stow** - Symlink manager
+- **tailspin** (`tspin`) - Log file highlighter with colors
 
 ### System & Environment
 - **btop** - System monitor
