@@ -144,7 +144,7 @@ text = '''
 echo "🚀 WRDS DevShell loaded with portable tools"
 echo "Run 'menu' to see available commands"
 echo ""
-echo "📊 For data science packages (SAS kernel, Jupyter, euporie):"
-echo "   ./setup-data-science.sh  # Pack data science environment"
+echo "🚀 Deploy everything to WRDS:"
+echo "   ./deploy.sh  # Builds and deploys both CLI tools and data science"
 echo ""
 '''

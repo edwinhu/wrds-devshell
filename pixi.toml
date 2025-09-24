@@ -10,4 +10,4 @@ euporie = ">=2.8"
 sas_kernel = "*"
 
 [tasks]
-pack = "pixi-pack --platform linux-64 --create-executable && echo 'Data science environment packed successfully'"
+

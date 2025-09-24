@@ -65,49 +65,27 @@ This project uses a **hybrid approach** combining Nix and Pixi:
 
 ## Quick Start
 
-### CLI Tools Only
-1. **Build and Deploy CLI Tools:**
-   ```bash
-   ./deploy.sh
-   ```
+**One-command deployment:**
+```bash
+./deploy.sh
+```
 
-2. **Use CLI Tools on WRDS:**
-   ```bash
-   # Enter the devshell (all CLI tools available)
-   ~/bin/wrds-tools
+This will:
+1. Build both CLI tools and data science environments
+2. Upload everything to WRDS
+3. Set up both environments automatically
 
-   # Run individual tools
-   ~/bin/wrds-tools --run tw data.csv
-   ~/bin/wrds-tools --run rg "pattern" .
-   ```
+**Use on WRDS:**
+```bash
+# CLI Tools (available in PATH via ~/.local/bin)
+wrds-tools                        # Enter devshell with all tools
+wrds-tools --run tw file.csv      # Run individual tools
 
-### Full Setup (CLI + Data Science)
-1. **Setup Data Science Environment:**
-   ```bash
-   # In the devshell or with pixi installed locally
-   ./setup-data-science.sh
-   ```
-
-2. **Deploy Both Components:**
-   ```bash
-   # Deploy CLI tools
-   ./deploy.sh
-
-   # Deploy data science environment
-   rclone copy environment.sh wrds:
-   ssh wrds 'bash environment.sh'
-   ```
-
-3. **Use on WRDS:**
-   ```bash
-   # CLI tools
-   ~/bin/wrds-tools
-
-   # Data science (after running environment.sh)
-   euporie console     # Jupyter console with SAS kernel
-   euporie notebook    # Jupyter notebook interface
-   python              # Python with pandas, etc.
-   ```
+# Data Science (automatically installed)
+euporie console     # Jupyter console with SAS kernel
+euporie notebook    # Jupyter notebook interface
+python              # Python with all dependencies
+```
 
 ## Manual Steps
 

@@ -1,27 +1,43 @@
 #!/usr/bin/env bash
 set -e
 
-# Build the bundle
+echo "🚀 Deploying WRDS environments..."
+
+# Build both environments
 ./build.sh
 
-# Upload to WRDS
-echo "Uploading bundle to WRDS..."
-rclone copy wrds-devshell.portable wrds:bin/
+echo ""
+echo "📤 Uploading to WRDS..."
 
-# Make executable on WRDS
-ssh wrds 'chmod +x ~/bin/wrds-devshell.portable'
+# Upload CLI tools bundle
+echo "Uploading CLI tools bundle..."
+rclone copy wrds-devshell.portable wrds:.local/bin/
 
-# Create symlink for easier access
-ssh wrds 'ln -sf ~/bin/wrds-devshell.portable ~/bin/wrds-tools'
+# Upload data science environment
+echo "Uploading data science environment..."
+rclone copy environment.sh wrds:
 
-# Update shell config to add to PATH
-ssh wrds 'mkdir -p ~/bin && grep -q "~/bin" ~/.bashrc || echo "export PATH=\$HOME/bin:\$PATH" >> ~/.bashrc'
+echo ""
+echo "⚙️  Setting up on WRDS..."
 
+# Make CLI tools executable and create symlink
+ssh wrds 'mkdir -p ~/.local/bin && chmod +x ~/.local/bin/wrds-devshell.portable && ln -sf ~/.local/bin/wrds-devshell.portable ~/.local/bin/wrds-tools'
+
+# Install data science environment
+ssh wrds 'bash environment.sh'
+
+echo ""
 echo "✅ Deployment complete!"
 echo ""
-echo "On WRDS, you can now:"
-echo "  - Enter devshell: ~/bin/wrds-tools"
-echo "  - Or use alias: ~/bin/wrds-devshell.portable"
-echo "  - Run individual tools: ~/bin/wrds-tools --run tw file.csv"
+echo "On WRDS, you can now use:"
 echo ""
-echo "Tools available: tw, bat, rg, fd, fzf, xan, eza, zoxide, jq, dust, btop, yazi"
+echo "🛠️  CLI Tools:"
+echo "   wrds-tools                        # Enter devshell with all tools"
+echo "   wrds-tools --run tw file.csv      # Run individual tools"
+echo ""
+echo "📊 Data Science:"
+echo "   euporie console     # Jupyter console with SAS kernel"
+echo "   euporie notebook    # Jupyter notebook interface"
+echo "   python              # Python with all dependencies"
+echo ""
+echo "Available CLI tools: tw, bat, rg, fd, fzf, xan, eza, zoxide, jq, dust, btop, yazi, pixi, and more!"
