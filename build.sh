@@ -42,29 +42,27 @@ if [[ $(uname) == "Linux" ]]; then
         -o wrds-devshell \
         "$TARGET_SHELL"
 else
-    # Build using Lima VM on macOS
-    echo "Building in Lima VM..."
+    # Build using x86_64 Lima VM on macOS
+    echo "Building in x86_64 Lima VM..."
 
-    # Ensure Lima default VM is running
-    if ! limactl list default 2>/dev/null | grep -q "Running"; then
-        echo "Starting Lima VM..."
-        limactl start default
+    # Ensure x86_64 Lima VM is running
+    if ! limactl list nix-x86_64-builder 2>/dev/null | grep -q "Running"; then
+        echo "Starting x86_64 Lima VM..."
+        limactl start nix-x86_64-builder
     fi
 
-    # Copy files to VM and build
-    limactl copy flake.nix devshell.toml pixi.toml build.sh default:~/
-    lima sh -c "
-        mkdir -p /tmp/wrds-devshell &&
-        cp ~/*.nix ~/*.toml ~/*.sh /tmp/wrds-devshell/ &&
-        cd /tmp/wrds-devshell &&
+    # Build in the mounted directory (already has files)
+    limactl shell nix-x86_64-builder -- bash -c "
         . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh &&
-        nix bundle --bundler github:DavHau/nix-portable .#devShells.aarch64-linux.default -o wrds-devshell &&
-        cp /nix/store/*/bin/wrds-tools ./wrds-devshell.portable
+        nix bundle --bundler github:DavHau/nix-portable .#devShells.x86_64-linux.default -o wrds-devshell-x86_64 &&
+        ACTUAL_PATH=\$(readlink -f wrds-devshell-x86_64) &&
+        chmod 755 \$ACTUAL_PATH/bin/wrds-tools &&
+        cp \$ACTUAL_PATH/bin/wrds-tools ./wrds-devshell.portable
     "
 
     # Copy result back to host
-    limactl copy default:/tmp/wrds-devshell/wrds-devshell.portable ./
-    echo "✅ Lima build complete"
+    limactl copy nix-x86_64-builder:/Users/vwh7mb/projects/wrds/wrds-devshell/wrds-devshell.portable ./
+    echo "✅ x86_64 Lima build complete"
 fi
 
 # Make it properly executable

@@ -50,9 +50,19 @@ help = "Z shell"
 category = "shell"
 
 [[commands]]
+package = "starship"
+help = "Cross-shell prompt"
+category = "shell"
+
+[[commands]]
 package = "rclone"
 help = "Cloud storage sync"
 category = "sync"
+
+[[commands]]
+package = "direnv"
+help = "Environment variable management"
+category = "shell"
 
 [devshell.startup.wrds-motd]
 text = '''

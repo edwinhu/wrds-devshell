@@ -9,8 +9,5 @@ platforms = ["linux-64"]
 euporie = ">=2.8"
 sas_kernel = "*"
 
-# Shell
-zsh = "*"
-
 [tasks]
 

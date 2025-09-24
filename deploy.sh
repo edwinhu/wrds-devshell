@@ -12,11 +12,11 @@ echo "📤 Uploading to WRDS..."
 
 # Upload CLI tools bundle
 echo "Uploading CLI tools bundle..."
-rclone copy wrds-devshell.portable wrds:
+cat wrds-devshell.portable | ssh wrds "cat > wrds-devshell.portable"
 
 # Upload data science environment
 echo "Uploading data science environment..."
-rclone copy environment.sh wrds:
+cat environment.sh | ssh wrds "cat > environment.sh"
 
 echo ""
 echo "⚙️  Installing on WRDS..."
