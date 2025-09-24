@@ -89,13 +89,23 @@ nix develop --command tw --help
 ## Requirements
 
 ### Local Machine
-- Nix package manager
+- Nix package manager with flakes enabled
 - rclone configured for WRDS
 - SSH access to WRDS
+- **Linux system** or remote Linux builders for creating portable bundles
 
 ### WRDS (Target)
 - Any recent Linux distribution
 - No additional dependencies needed
+
+## Important Note
+
+The `nix bundle` command with nix-portable currently only works on Linux systems. If you're building from macOS, you have these options:
+
+1. **Use GitHub Actions** (recommended): Set up CI to build the bundle automatically
+2. **Use remote builders**: Configure Nix to use remote Linux builders
+3. **Use Docker/Lima**: Run the build inside a Linux container
+4. **Build on WRDS directly**: Clone the repo on WRDS and build there
 
 ## File Structure
 
