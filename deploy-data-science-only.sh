@@ -33,6 +33,7 @@ chmod +x ~/.local/bin/activate-wrds-data-science
 # Create direct symlinks for key tools
 ln -sf ~/.local/wrds-data-science/bin/euporie ~/.local/bin/euporie
 ln -sf ~/.local/wrds-data-science/bin/python ~/.local/bin/python-wrds
+ln -sf ~/.local/wrds-data-science/bin/zsh ~/.local/bin/zsh
 
 # Ensure ~/.local/bin is in PATH for all sessions
 grep -q "~/.local/bin" ~/.bash_profile || echo "export PATH=~/.local/bin:\$PATH" >> ~/.bash_profile

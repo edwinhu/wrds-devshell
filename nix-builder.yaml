@@ -1,0 +1,70 @@
+# Lima VM configuration for nix-portable builds
+# Template: ubuntu-lts
+# Ref: https://github.com/lima-vm/lima/blob/HEAD/examples/ubuntu-lts.yaml
+
+images:
+- location: "https://cloud-images.ubuntu.com/releases/24.04/release-20241004/ubuntu-24.04-server-cloudimg-amd64.img"
+  arch: "x86_64"
+- location: "https://cloud-images.ubuntu.com/releases/24.04/release-20241004/ubuntu-24.04-server-cloudimg-arm64.img"
+  arch: "aarch64"
+
+# CPU and memory
+cpus: 4
+memory: "8GiB"
+
+# Mount our project directory
+mounts:
+- location: "~/projects/wrds/wrds-devshell"
+  writable: true
+
+# Network settings
+networks:
+- lima: shared
+
+# Provision script to install Nix
+provision:
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+
+    # Install dependencies
+    apt-get update
+    apt-get install -y curl xz-utils git
+
+    # Install Nix multi-user
+    curl -L https://nixos.org/nix/install | sh -s -- --daemon
+
+    # Enable nix-command and flakes
+    mkdir -p /etc/nix
+    cat > /etc/nix/nix.conf << 'EOF'
+    experimental-features = nix-command flakes
+    sandbox = true
+    trusted-users = root ubuntu
+    EOF
+
+    # Restart nix-daemon
+    systemctl restart nix-daemon
+
+- mode: user
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+
+    # Source nix
+    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+
+    # Add to .bashrc
+    echo '. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' >> ~/.bashrc
+
+    # Test nix installation
+    nix --version
+
+# SSH settings
+ssh:
+  loadDotSSHPubKeys: true
+
+# Containerd disabled since we're just using for Nix builds
+containerd:
+  system: false
+  user: false

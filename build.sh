@@ -10,10 +10,22 @@ echo "1️⃣ Building CLI tools bundle..."
 # Note: This requires building from a Linux system or using remote builders
 # On macOS, you may need to use a remote Linux builder or Docker
 
-# Check if we're on Linux
+# Check if we're on Linux and detect architecture
 if [[ $(uname) == "Linux" ]]; then
-    SYSTEM="x86_64-linux"
-    TARGET_SHELL=".#devShells.x86_64-linux.default"
+    ARCH=$(uname -m)
+    case $ARCH in
+        x86_64)
+            SYSTEM="x86_64-linux"
+            ;;
+        aarch64)
+            SYSTEM="aarch64-linux"
+            ;;
+        *)
+            echo "Warning: Unsupported architecture $ARCH, defaulting to x86_64-linux"
+            SYSTEM="x86_64-linux"
+            ;;
+    esac
+    TARGET_SHELL=".#devShells.$SYSTEM.default"
 else
     echo "Warning: Building from non-Linux system. This may require remote builders."
     SYSTEM="x86_64-linux"
@@ -24,9 +36,36 @@ echo "Target system: $SYSTEM"
 echo "Target shell: $TARGET_SHELL"
 
 # Build the bundle using nix-portable bundler
-nix bundle --bundler github:DavHau/nix-portable \
-    -o wrds-devshell \
-    "$TARGET_SHELL"
+if [[ $(uname) == "Linux" ]]; then
+    # Build directly on Linux
+    nix bundle --bundler github:DavHau/nix-portable \
+        -o wrds-devshell \
+        "$TARGET_SHELL"
+else
+    # Build using Lima VM on macOS
+    echo "Building in Lima VM..."
+
+    # Ensure Lima default VM is running
+    if ! limactl list default 2>/dev/null | grep -q "Running"; then
+        echo "Starting Lima VM..."
+        limactl start default
+    fi
+
+    # Copy files to VM and build
+    limactl copy flake.nix devshell.toml pixi.toml build.sh default:~/
+    lima sh -c "
+        mkdir -p /tmp/wrds-devshell &&
+        cp ~/*.nix ~/*.toml ~/*.sh /tmp/wrds-devshell/ &&
+        cd /tmp/wrds-devshell &&
+        . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh &&
+        nix bundle --bundler github:DavHau/nix-portable .#devShells.aarch64-linux.default -o wrds-devshell &&
+        cp /nix/store/*/bin/wrds-tools ./wrds-devshell.portable
+    "
+
+    # Copy result back to host
+    limactl copy default:/tmp/wrds-devshell/wrds-devshell.portable ./
+    echo "✅ Lima build complete"
+fi
 
 # Make it properly executable
 if [[ -f wrds-devshell/bin/wrds-devshell ]]; then

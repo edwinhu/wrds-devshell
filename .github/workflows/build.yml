@@ -20,6 +20,7 @@ jobs:
         nix_path: nixpkgs=channel:nixos-unstable
 
     - name: Build portable bundle
+      timeout-minutes: 15
       run: |
         ./build.sh
 

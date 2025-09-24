@@ -1,67 +1,37 @@
 # WRDS DevShell
 
-A portable development tools bundle for WRDS using Nix devshell and nix-portable.
+A portable development environment for WRDS using a hybrid Nix + Pixi approach.
 
 ## Overview
 
-This project creates a single, portable executable containing all essential development tools needed for working on WRDS. The bundle is built using Nix and can run on any Linux system without requiring Nix or any other dependencies to be installed.
-
-## Tools Included
-
-### Data Processing
-- **tabiew** (`tw`) - View and query CSV/TSV files
-- **xan** - CSV processing tool
-- **jq** - JSON processor
-
-### File & Search
-- **bat** - Cat with syntax highlighting
-- **ripgrep** (`rg`) - Fast recursive grep
-- **fd** - Fast file finder
-- **fzf** - Fuzzy finder
-- **eza** - Modern ls replacement
-- **yazi** - Terminal file manager
-- **dust** - Disk usage analyzer
-- **p7zip** - Archive utility
-- **stow** - Symlink manager
-- **tailspin** (`tspin`) - Log file highlighter with colors
-
-### System & Environment
-- **btop** - System monitor
-- **zoxide** - Smarter cd
-- **direnv** - Environment variable management
-- **parallel** - Run commands in parallel
-
-### Development
-- **gh** - GitHub CLI
-
-### Shell & Prompt
-- **starship** - Cross-shell prompt
-- **zsh** - Z shell
-
-### Documentation & Help
-- **tldr** - Simplified man pages
-
-### Document Processing
-- **poppler** - PDF utilities
-- **resvg** - SVG renderer
-- **tectonic** - LaTeX engine
-
-### Sync & Backup
-- **rclone** - Cloud storage sync
-
-### Data Science Tools
-- **pixi** - Cross-platform conda package manager
-- **pixi-pack** - Pack pixi environments for distribution
+This project creates portable development environments for WRDS (Wharton Research Data Services) that run without requiring any dependencies on the target system. It uses a hybrid approach combining Nix for CLI tools and Pixi for data science packages.
 
 ## Architecture
 
-This project uses a **hybrid approach** combining Nix and Pixi:
+**Hybrid Approach:**
+1. **CLI Tools Bundle**: Nix DevShell → nix-portable → single 167MB executable
+2. **Data Science Environment**: Pixi → pixi-pack → conda-style portable environment
+3. **Build System**: Lima VM for cross-platform Linux builds on macOS
 
-1. **Nix DevShell**: Provides portable CLI tools and pixi itself
-2. **Pixi Environment**: Handles data science packages (Python, Jupyter, SAS kernel, euporie)
-3. **Dual Deployment**:
-   - CLI tools → single portable executable via nix-portable
-   - Data science → packed environment via pixi-pack
+## Tools Included
+
+### CLI Tools Bundle (wrds-devshell.portable)
+- **tabiew** (`tw`) - View and query CSV/TSV files
+- **bat** - Cat with syntax highlighting
+- **ripgrep** (`rg`) - Fast recursive text search
+- **fd** - Fast file finder
+- **fzf** - Fuzzy finder
+- **eza** - Modern ls replacement
+- **zoxide** - Smarter cd command
+- **jq** - JSON processor
+- **zsh** - Advanced shell
+- **rclone** - Cloud storage sync
+
+### Data Science Environment (environment.sh)
+- **euporie** - Enhanced Jupyter console/notebook interface
+- **sas_kernel** - SAS kernel for Jupyter
+- **Python** - Full Python environment with data science stack
+- **zsh** - Shell environment
 
 ## Quick Start
 
@@ -70,113 +40,170 @@ This project uses a **hybrid approach** combining Nix and Pixi:
 ./deploy.sh
 ```
 
-This will:
-1. Build both CLI tools and data science environments
-2. Upload everything to WRDS
-3. Set up both environments automatically
+This builds and deploys both environments to WRDS automatically.
 
 **Use on WRDS:**
 ```bash
-# CLI Tools (available in PATH via ~/.local/bin)
-wrds-tools                        # Enter devshell with all tools
-wrds-tools --run tw file.csv      # Run individual tools
+# CLI Tools (in ~/.local/bin)
+wrds-tools                    # Enter devshell with all tools
+wrds-tools tw file.csv        # Run tabiew directly
+tw file.csv                   # Direct access (tools are in PATH)
 
-# Data Science (automatically installed)
-euporie console     # Jupyter console with SAS kernel
-euporie notebook    # Jupyter notebook interface
-python              # Python with all dependencies
+# Data Science
+euporie console               # Jupyter console with SAS kernel
+euporie notebook              # Jupyter notebook interface
+python-wrds                   # Python environment
 ```
 
-## Manual Steps
+## Build System
 
-### Build Only
+### Automatic Lima VM (macOS)
+The build system automatically uses Lima (Linux on Mac) VMs to create Linux binaries:
+
+- **Automatic**: `./build.sh` detects macOS and uses Lima VM
+- **No setup required**: VM starts automatically with Determinate Systems Nix
+- **Cross-architecture**: Builds for both x86_64 and aarch64 Linux
+
+### Manual Build
 ```bash
+# Build both environments
 ./build.sh
+
+# Build only CLI tools
+nix bundle --bundler github:DavHau/nix-portable .#devShells.default.default -o wrds-devshell
+
+# Build only data science
+pixi install  # Generate lock file
+pixi-pack --platform linux-64 --create-executable
 ```
-This creates `wrds-devshell.portable` - a single executable file.
 
-### Deploy to WRDS
+## Deployment Options
+
+### Full Deployment (Recommended)
 ```bash
-# Copy the bundle
-rclone copy wrds-devshell.portable wrds:bin/
+./deploy.sh                   # Builds and deploys both environments
+```
 
-# Make executable and add to PATH
-ssh wrds 'chmod +x ~/bin/wrds-devshell.portable && ln -sf ~/bin/wrds-devshell.portable ~/bin/wrds-tools'
+### CLI Tools Only
+```bash
+./build.sh                    # Creates wrds-devshell.portable
+rclone copy wrds-devshell.portable wrds:
+ssh wrds 'mv wrds-devshell.portable ~/.local/bin/wrds-tools && chmod +x ~/.local/bin/wrds-tools'
+```
+
+### Data Science Only
+```bash
+./deploy-data-science-only.sh
 ```
 
 ## Development
 
-### Modifying Tools
-
-Edit `devshell.toml` to add, remove, or modify tools:
-
+### Adding CLI Tools
+Edit `devshell.toml`:
 ```toml
 [[commands]]
 package = "package-name"
-name = "alias-name"  # optional
+name = "alias-name"     # optional
 help = "Description"
 category = "category"
 ```
 
-### Testing Locally
-
-```bash
-# Enter the devshell locally (requires Nix)
-nix develop
-
-# Test specific tools
-nix develop --command tw --help
+### Adding Data Science Packages
+Edit `pixi.toml`:
+```toml
+[dependencies]
+new-package = ">=1.0"
 ```
 
-## How It Works
+### Local Testing
+```bash
+# Test CLI tools
+nix develop                   # Requires Nix locally
+nix develop --command tw --help
 
-1. **devshell.toml** defines the tools and environment
-2. **flake.nix** creates a Nix devshell from the TOML config
-3. **nix-portable** bundles the devshell into a single executable
-4. The bundle is deployed to WRDS via rclone
+# Test data science
+pixi shell                    # Requires pixi locally
+pixi run python
+```
 
-## Requirements
+## System Requirements
 
-### Local Machine
-- Nix package manager with flakes enabled
+### Build Machine
+- **macOS**: Lima VM (automatically managed)
+- **Linux**: Native Nix builds
+- **Any**: Nix with flakes enabled
 - rclone configured for WRDS
 - SSH access to WRDS
-- **Linux system** or remote Linux builders for creating portable bundles
 
 ### WRDS (Target)
-- Any recent Linux distribution
-- No additional dependencies needed
-
-## Important Note
-
-The `nix bundle` command with nix-portable currently only works on Linux systems. If you're building from macOS, you have these options:
-
-1. **Use GitHub Actions** (recommended): Set up CI to build the bundle automatically
-2. **Use remote builders**: Configure Nix to use remote Linux builders
-3. **Use Docker/Lima**: Run the build inside a Linux container
-4. **Build on WRDS directly**: Clone the repo on WRDS and build there
+- Any Linux distribution
+- No dependencies required
+- ~/.local/bin in PATH (usually automatic)
 
 ## File Structure
 
 ```
 wrds-devshell/
-├── flake.nix          # Nix flake configuration
-├── devshell.toml      # Tool definitions
-├── build.sh           # Build the portable bundle
-├── deploy.sh          # Build and deploy to WRDS
-└── README.md          # This file
+├── flake.nix                    # Nix flake for CLI tools
+├── devshell.toml               # CLI tool definitions
+├── pixi.toml                   # Data science dependencies
+├── build.sh                    # Build both environments (Lima VM on macOS)
+├── deploy.sh                   # Build and deploy everything
+├── deploy-data-science-only.sh # Deploy only data science
+├── nix-builder.yaml           # Lima VM configuration
+└── README.md                   # This file
 ```
+
+## Deployment Details
+
+**CLI Tools Installation:**
+- Deployed to: `~/.local/bin/wrds-tools`
+- All tools accessible directly (tw, rg, bat, etc.)
+- Single 167MB executable
+
+**Data Science Installation:**
+- Environment: `~/.local/wrds-data-science/`
+- Activation: `source ~/.local/bin/activate-wrds-data-science`
+- Direct tools: `euporie`, `python-wrds` in PATH
 
 ## Troubleshooting
 
 ### Build Issues
-- Ensure you have Nix with flakes enabled
-- Check that all packages in devshell.toml exist in nixpkgs
+```bash
+# Check Lima VM status
+limactl list
+
+# Restart Lima VM
+limactl stop default && limactl start default
+
+# Check Nix in VM
+lima nix --version
+```
 
 ### Deployment Issues
-- Verify rclone is configured for WRDS: `rclone config`
-- Test SSH access: `ssh wrds echo "Connection OK"`
+```bash
+# Test connections
+rclone ls wrds:
+ssh wrds echo "OK"
 
-### Runtime Issues on WRDS
-- Ensure the bundle is executable: `chmod +x ~/bin/wrds-devshell.portable`
-- Check that ~/bin is in PATH: `echo $PATH`
+# Check deployed tools
+ssh wrds 'ls -la ~/.local/bin/'
+ssh wrds 'wrds-tools --help'
+```
+
+### Runtime Issues
+```bash
+# Check PATH on WRDS
+ssh wrds 'echo $PATH | tr : \\n | grep local'
+
+# Test individual tools
+ssh wrds 'tw --version'
+ssh wrds 'euporie --version'
+```
+
+## Build Times
+- **First build**: 10-15 minutes (downloads all dependencies)
+- **Incremental builds**: 2-3 minutes (cached dependencies)
+- **VM startup**: 30-60 seconds (automatic)
+
+The Lima VM approach provides reliable cross-platform builds while maintaining the simplicity of single-command deployment.
