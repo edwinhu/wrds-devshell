@@ -8,18 +8,46 @@ This project creates a single, portable executable containing all essential deve
 
 ## Tools Included
 
+### Data Processing
 - **tabiew** (`tw`) - View and query CSV/TSV files
+- **xan** - CSV processing tool
+- **jq** - JSON processor
+- **gtabview** - Alternative CSV viewer
+
+### File & Search
 - **bat** - Cat with syntax highlighting
 - **ripgrep** (`rg`) - Fast recursive grep
 - **fd** - Fast file finder
 - **fzf** - Fuzzy finder
-- **xan** - CSV processing tool
 - **eza** - Modern ls replacement
-- **zoxide** - Smarter cd
-- **jq** - JSON processor
-- **dust** - Disk usage analyzer
-- **btop** - System monitor
 - **yazi** - Terminal file manager
+- **dust** - Disk usage analyzer
+- **p7zip** - Archive utility
+- **stow** - Symlink manager
+
+### System & Environment
+- **btop** - System monitor
+- **zoxide** - Smarter cd
+- **direnv** - Environment variable management
+- **parallel** - Run commands in parallel
+
+### Development
+- **gh** - GitHub CLI
+
+### Shell & Prompt
+- **starship** - Cross-shell prompt
+- **zsh** - Z shell
+
+### Documentation & Help
+- **tldr** - Simplified man pages
+
+### Document Processing
+- **poppler** - PDF utilities
+- **resvg** - SVG renderer
+- **tectonic** - LaTeX engine
+
+### Sync & Backup
+- **rclone** - Cloud storage sync
 
 ## Quick Start
 

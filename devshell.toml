@@ -63,6 +63,71 @@ package = "yazi"
 help = "Terminal file manager"
 category = "file"
 
+[[commands]]
+package = "direnv"
+help = "Environment variable management"
+category = "env"
+
+[[commands]]
+package = "starship"
+help = "Cross-shell prompt"
+category = "shell"
+
+[[commands]]
+package = "stow"
+help = "Symlink manager"
+category = "file"
+
+[[commands]]
+package = "zsh"
+help = "Z shell"
+category = "shell"
+
+[[commands]]
+package = "gh"
+help = "GitHub CLI"
+category = "dev"
+
+[[commands]]
+package = "tldr"
+help = "Simplified man pages"
+category = "help"
+
+[[commands]]
+package = "p7zip"
+help = "Archive utility"
+category = "file"
+
+[[commands]]
+package = "parallel"
+help = "Run commands in parallel"
+category = "system"
+
+[[commands]]
+package = "poppler"
+help = "PDF utilities"
+category = "doc"
+
+[[commands]]
+package = "resvg"
+help = "SVG renderer"
+category = "graphics"
+
+[[commands]]
+package = "tectonic"
+help = "LaTeX engine"
+category = "doc"
+
+[[commands]]
+package = "rclone"
+help = "Cloud storage sync"
+category = "sync"
+
+[[commands]]
+package = "gtabview"
+help = "Alternative CSV viewer"
+category = "data"
+
 [devshell.startup.wrds-motd]
 text = '''
 echo "🚀 WRDS DevShell loaded with portable tools"
