@@ -129,8 +129,22 @@ name = "tspin"
 help = "Log file highlighter with colors"
 category = "file"
 
+[[commands]]
+package = "pixi"
+help = "Cross-platform conda package manager"
+category = "data-science"
+
+[[commands]]
+package = "pixi-pack"
+help = "Pack pixi environments for distribution"
+category = "data-science"
+
 [devshell.startup.wrds-motd]
 text = '''
 echo "🚀 WRDS DevShell loaded with portable tools"
 echo "Run 'menu' to see available commands"
+echo ""
+echo "📊 For data science packages (SAS kernel, Jupyter, euporie):"
+echo "   ./setup-data-science.sh  # Pack data science environment"
+echo ""
 '''

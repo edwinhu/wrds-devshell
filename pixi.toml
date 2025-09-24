@@ -1,0 +1,13 @@
+[project]
+name = "wrds-data-science"
+description = "Data science packages for WRDS portable environment"
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[dependencies]
+# Core data science environment
+euporie = ">=2.8"
+sas_kernel = "*"
+
+[tasks]
+pack = "pixi-pack --platform linux-64 --create-executable && echo 'Data science environment packed successfully'"
