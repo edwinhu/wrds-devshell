@@ -1,0 +1,70 @@
+[devshell]
+name = "wrds-tools"
+
+[[commands]]
+package = "tabiew"
+name = "tw"
+help = "View and query CSV/TSV files"
+category = "data"
+
+[[commands]]
+package = "bat"
+help = "Cat with syntax highlighting"
+category = "file"
+
+[[commands]]
+package = "ripgrep"
+name = "rg"
+help = "Fast recursive grep"
+category = "search"
+
+[[commands]]
+package = "fd"
+help = "Fast file finder"
+category = "search"
+
+[[commands]]
+package = "fzf"
+help = "Fuzzy finder"
+category = "search"
+
+[[commands]]
+package = "xan"
+help = "CSV processing tool"
+category = "data"
+
+[[commands]]
+package = "eza"
+help = "Modern ls replacement"
+category = "file"
+
+[[commands]]
+package = "zoxide"
+help = "Smarter cd"
+category = "navigation"
+
+[[commands]]
+package = "jq"
+help = "JSON processor"
+category = "data"
+
+[[commands]]
+package = "dust"
+help = "Disk usage analyzer"
+category = "file"
+
+[[commands]]
+package = "btop"
+help = "System monitor"
+category = "system"
+
+[[commands]]
+package = "yazi"
+help = "Terminal file manager"
+category = "file"
+
+[devshell.startup.wrds-motd]
+text = '''
+echo "🚀 WRDS DevShell loaded with portable tools"
+echo "Run 'menu' to see available commands"
+'''
