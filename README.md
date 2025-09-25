@@ -20,6 +20,8 @@ This project creates portable development environments for WRDS (Wharton Researc
 └── deploy.sh             # Deploy to WRDS
 ```
 
+There are also flake and pixi lockfiles to pin dependencies.
+
 ### 📦 Build Process
 
 ```bash
@@ -27,9 +29,10 @@ This project creates portable development environments for WRDS (Wharton Researc
 ```
 
 **What happens:**
+
 1. **CLI Tools (Nix)**: Uses x86_64 Lima VM to cross-compile
-   - Reads `devshell.toml` (12 CLI tools)
-   - Creates `wrds-devshell.portable` (173MB) - single self-contained executable
+   - Reads `devshell.toml` (27 CLI tools including databases)
+   - Creates `wrds-devshell.portable` (626MB) - single self-contained executable
 
 2. **Data Science (Pixi)**: Builds on host
    - Reads `pixi.toml` (euporie, sas_kernel, python)
@@ -42,6 +45,7 @@ This project creates portable development environments for WRDS (Wharton Researc
 ```
 
 **What happens:**
+
 1. **Upload**: Streams files to WRDS via SSH
 2. **Install CLI tools**: Extracts to `~/.local/bin/wrds-tools`, individual tools available in PATH
 3. **Install data science**: Extracts to `~/.local/wrds-data-science/`, creates symlinks
@@ -49,6 +53,7 @@ This project creates portable development environments for WRDS (Wharton Researc
 ### 🔧 Runtime on WRDS
 
 **Automatic setup** via `~/.wrds-setup` (sourced on login):
+
 ```bash
 # PATH includes ~/.local/bin
 export PATH="$HOME/.local/bin:$PATH"
@@ -60,6 +65,7 @@ eval "$(direnv hook bash)"        # Environment management
 ```
 
 **Available immediately on SSH:**
+
 ```bash
 ssh wrds
 # All tools work immediately:
@@ -68,6 +74,8 @@ rg "pattern" .         # Search
 fd filename            # Find files
 bat file.txt          # Syntax highlighting
 tw data.csv           # View CSV files
+sqlite3 database.db   # SQLite database CLI
+duckdb                # DuckDB analytical database
 euporie console       # Jupyter with SAS
 python-wrds           # Python 3.13.7
 ```
@@ -75,6 +83,7 @@ python-wrds           # Python 3.13.7
 ## Tools Included
 
 ### CLI Tools Bundle (devshell.toml)
+
 - **tabiew** (`tw`) - View and query CSV/TSV files
 - **bat** - Cat with syntax highlighting
 - **ripgrep** (`rg`) - Fast recursive text search
@@ -87,8 +96,11 @@ python-wrds           # Python 3.13.7
 - **starship** - Cross-shell prompt
 - **rclone** - Cloud storage sync (1.71.0, updated from system 1.70.3)
 - **direnv** - Environment variable management
+- **sqlite3** - SQLite database engine CLI (3.50.2)
+- **duckdb** - In-process SQL OLAP database CLI (1.3.2)
 
 ### Data Science Environment (pixi.toml)
+
 - **euporie** - Enhanced Jupyter console/notebook interface
 - **sas_kernel** - SAS kernel for Jupyter
 - **Python 3.13.7** - Full Python environment with data science stack
@@ -105,6 +117,7 @@ python-wrds           # Python 3.13.7
 ## Quick Start
 
 **One-command deployment:**
+
 ```bash
 ./deploy.sh
 ```
@@ -127,6 +140,7 @@ vim pixi.toml          # Add/remove data science packages
 ## Build System
 
 ### x86_64 Lima VM (macOS)
+
 The build system uses a dedicated x86_64 Lima VM for cross-compilation:
 
 - **VM**: `nix-x86_64-builder` with x86_64 emulation
@@ -134,6 +148,7 @@ The build system uses a dedicated x86_64 Lima VM for cross-compilation:
 - **Architecture**: Ensures x86_64 Linux compatibility for WRDS servers
 
 ### Manual Build Commands
+
 ```bash
 # Build both environments
 ./build.sh
@@ -148,7 +163,9 @@ pixi-pack --platform linux-64 --create-executable
 ## Development
 
 ### Adding CLI Tools
+
 Edit `devshell.toml`:
+
 ```toml
 [[commands]]
 package = "package-name"
@@ -158,13 +175,16 @@ category = "category"
 ```
 
 ### Adding Data Science Packages
+
 Edit `pixi.toml`:
+
 ```toml
 [dependencies]
 new-package = ">=1.0"
 ```
 
 ### Local Testing
+
 ```bash
 # Test CLI tools
 nix develop                   # Requires Nix locally
@@ -178,11 +198,13 @@ pixi run python
 ## System Requirements
 
 ### Build Machine
+
 - **macOS**: Lima VM (automatically managed)
 - **Linux**: Native Nix builds
 - **Required**: Nix with flakes enabled, pixi, SSH access to WRDS
 
 ### WRDS (Target)
+
 - Any Linux distribution
 - No dependencies required
 - `~/.local/bin` in PATH (automatic)
@@ -203,14 +225,16 @@ wrds-devshell/
 ## Deployment Details
 
 **On WRDS after deployment:**
+
 - **CLI Tools**: `~/.local/bin/wrds-tools` + individual tools in PATH
 - **Data Science**: `~/.local/wrds-data-science/` + symlinks (`euporie`, `python-wrds`)
 - **Integration**: `~/.wrds-setup` sourced on login for automatic tool initialization
-- **Size**: 173MB CLI bundle + 160MB data science bundle
+- **Size**: 626MB CLI bundle + 193MB data science bundle
 
 ## Troubleshooting
 
 ### Build Issues
+
 ```bash
 # Check x86_64 Lima VM status
 limactl list nix-x86_64-builder
@@ -223,6 +247,7 @@ limactl shell nix-x86_64-builder -- nix --version
 ```
 
 ### Deployment Issues
+
 ```bash
 # Test SSH connection
 ssh wrds echo "OK"
@@ -233,18 +258,22 @@ ssh wrds 'tw --version'
 ```
 
 ### Runtime Issues
+
 ```bash
 # Check tool availability
-ssh wrds 'which fzf starship zoxide direnv tw'
+ssh wrds 'which fzf starship zoxide direnv tw sqlite3 duckdb'
 ssh wrds 'euporie --version && python-wrds --version'
+ssh wrds 'sqlite3 --version && duckdb --version'
 ```
 
 ## Architecture Notes
 
 The hybrid approach combines the best of both ecosystems:
+
 - **Nix**: Hermetic, reproducible CLI tools with precise dependency management
-- **Conda/Pixi**: Python ecosystem compatibility for data science workflows
+- **Pixi**: Python ecosystem compatibility for data science workflows
 - **nix-portable**: Single-file deployment without Nix installation on target
 - **Lima VM**: Cross-platform Linux builds from macOS development environment
 
 This provides modern, portable development tools that work immediately on any Linux system without dependencies.
+
