@@ -45,7 +45,12 @@ else
     # Build using x86_64 Lima VM on macOS
     echo "Building in x86_64 Lima VM..."
 
-    # Ensure x86_64 Lima VM is running
+    # Ensure x86_64 Lima VM exists and is running
+    if ! limactl list nix-x86_64-builder 2>/dev/null | grep -q "nix-x86_64-builder"; then
+        echo "Creating x86_64 Lima VM..."
+        limactl create --name nix-x86_64-builder nix-x86_64-builder.yaml
+    fi
+
     if ! limactl list nix-x86_64-builder 2>/dev/null | grep -q "Running"; then
         echo "Starting x86_64 Lima VM..."
         limactl start nix-x86_64-builder
@@ -53,6 +58,7 @@ else
 
     # Build in the mounted directory (already has files)
     limactl shell nix-x86_64-builder -- bash -c "
+        cd /Users/vwh7mb/projects/wrds-devshell &&
         . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh &&
         nix bundle --bundler github:DavHau/nix-portable .#devShells.x86_64-linux.default -o wrds-devshell-x86_64 &&
         ACTUAL_PATH=\$(readlink -f wrds-devshell-x86_64) &&
@@ -60,8 +66,13 @@ else
         chmod +x ./wrds-devshell.portable
     "
 
-    # Copy result back to host
-    limactl copy nix-x86_64-builder:/Users/vwh7mb/projects/wrds/wrds-devshell/wrds-devshell.portable ./
+    # Copy result back to host (file already exists in mounted directory)
+    if [[ -f wrds-devshell.portable ]]; then
+        echo "✅ Found wrds-devshell.portable, no need to copy"
+    else
+        echo "❌ wrds-devshell.portable not created by Lima VM"
+        exit 1
+    fi
     echo "✅ x86_64 Lima build complete"
 fi
 

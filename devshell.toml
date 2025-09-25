@@ -1,7 +1,7 @@
 [devshell]
 name = "wrds-tools"
 
-# Essential CLI tools only - smaller bundle for faster GitHub Actions
+# Essential CLI tools - now includes database engines for data analysis
 [[commands]]
 package = "tabiew"
 name = "tw"
@@ -124,6 +124,16 @@ category = "documentation"
 [[commands]]
 package = "xan"
 help = "CSV toolkit"
+category = "data"
+
+[[commands]]
+package = "sqlite"
+help = "SQLite database engine"
+category = "data"
+
+[[commands]]
+package = "duckdb"
+help = "In-process SQL OLAP database"
 category = "data"
 
 [[commands]]
