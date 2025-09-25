@@ -56,8 +56,8 @@ else
         . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh &&
         nix bundle --bundler github:DavHau/nix-portable .#devShells.x86_64-linux.default -o wrds-devshell-x86_64 &&
         ACTUAL_PATH=\$(readlink -f wrds-devshell-x86_64) &&
-        chmod 755 \$ACTUAL_PATH/bin/wrds-tools &&
-        cp \$ACTUAL_PATH/bin/wrds-tools ./wrds-devshell.portable
+        cp \$ACTUAL_PATH/bin/wrds-tools ./wrds-devshell.portable &&
+        chmod +x ./wrds-devshell.portable
     "
 
     # Copy result back to host
@@ -65,14 +65,11 @@ else
     echo "✅ x86_64 Lima build complete"
 fi
 
-# Make it properly executable
-if [[ -f wrds-devshell/bin/wrds-devshell ]]; then
-    cp ./wrds-devshell/bin/wrds-devshell ./wrds-devshell.portable
-elif [[ -f wrds-devshell ]]; then
-    cp ./wrds-devshell ./wrds-devshell.portable
-else
-    echo "Error: Could not find built executable"
-    find wrds-devshell -type f -executable 2>/dev/null || echo "No executable files found"
+# The executable is already created by the Lima VM build process
+if [[ ! -f wrds-devshell.portable ]]; then
+    echo "Error: wrds-devshell.portable not found after build"
+    echo "Checking build artifacts..."
+    ls -la wrds-devshell* 2>/dev/null || echo "No build artifacts found"
     exit 1
 fi
 

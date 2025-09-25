@@ -25,32 +25,33 @@ echo "⚙️  Installing on WRDS..."
 echo "Installing CLI tools..."
 ssh wrds '
 mkdir -p ~/.local/bin
-mv wrds-devshell.portable ~/.local/bin/wrds-tools
+cp wrds-devshell.portable ~/.local/bin/wrds-tools
 chmod +x ~/.local/bin/wrds-tools
+rm -f wrds-devshell.portable
 
-# Ensure ~/.local/bin is in PATH
-grep -q "~/.local/bin" ~/.bash_profile 2>/dev/null || echo "export PATH=~/.local/bin:\$PATH" >> ~/.bash_profile
+echo "✅ CLI tools bundle installed to ~/.local/bin/wrds-tools"
 '
 
 # Install data science environment to ~/.local
 echo "Installing data science environment..."
-ssh wrds 'mkdir -p ~/.local && bash environment.sh --output-directory ~/.local --env-name wrds-data-science'
-
-# Create activation script and symlinks in ~/.local/bin
 ssh wrds '
+# Only install if not already present
+if [ ! -d ~/.local/wrds-data-science ]; then
+    mkdir -p ~/.local && bash environment.sh --output-directory ~/.local --env-name wrds-data-science
+    echo "✅ Data science environment installed"
+else
+    echo "✅ Data science environment already exists"
+fi
+
+# Create/update symlinks for key tools
 mkdir -p ~/.local/bin
-echo "export PATH=\"~/.local/wrds-data-science/bin:\${PATH}\"" > ~/.local/bin/activate-wrds-data-science
-echo "export CONDA_SHLVL=1" >> ~/.local/bin/activate-wrds-data-science
-echo "export CONDA_PREFIX=~/.local/wrds-data-science" >> ~/.local/bin/activate-wrds-data-science
-chmod +x ~/.local/bin/activate-wrds-data-science
+ln -sf ~/.local/wrds-data-science/bin/euporie ~/.local/bin/euporie 2>/dev/null || true
+ln -sf ~/.local/wrds-data-science/bin/python ~/.local/bin/python-wrds 2>/dev/null || true
 
-# Create direct symlinks for key tools
-ln -sf ~/.local/wrds-data-science/bin/euporie ~/.local/bin/euporie
-ln -sf ~/.local/wrds-data-science/bin/python ~/.local/bin/python-wrds
-ln -sf ~/.local/wrds-data-science/bin/zsh ~/.local/bin/zsh
+# Clean up uploaded file
+rm -f environment.sh
 
-# Ensure ~/.local/bin is in PATH for all sessions
-grep -q "~/.local/bin" ~/.bash_profile || echo "export PATH=~/.local/bin:\$PATH" >> ~/.bash_profile
+echo "✅ Data science tools configured"
 '
 
 echo ""
