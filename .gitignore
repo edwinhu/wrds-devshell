@@ -1,7 +1,9 @@
 # Built artifacts - too large for GitHub
 environment.sh
 wrds-devshell.portable
+wrds-devshell-x86_64.portable
 wrds-devshell/
+wrds-devshell-x86_64
 
 # Build artifacts
 result

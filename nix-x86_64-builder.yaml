@@ -1,0 +1,52 @@
+# Lima VM configuration for x86_64 nix-portable builds
+# This will use x86_64 emulation even on Apple Silicon
+
+images:
+- location: "https://cloud-images.ubuntu.com/releases/24.04/release-20241004/ubuntu-24.04-server-cloudimg-amd64.img"
+  arch: "x86_64"
+
+# Force x86_64 even on Apple Silicon (uses emulation)
+arch: "x86_64"
+
+# CPU and memory
+cpus: 4
+memory: "8GiB"
+
+# Mount our project directory
+mounts:
+- location: "~/projects/wrds/wrds-devshell"
+  writable: true
+
+# Provision script to install Nix
+provision:
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+    
+    # Install dependencies
+    apt-get update
+    apt-get install -y curl xz-utils git
+    
+    # Install Determinate Systems Nix
+    curl -fsSL https://install.determinate.systems/nix | sh -s -- install --determinate --no-confirm
+    
+- mode: user
+  script: |
+    #!/bin/bash
+    set -eux -o pipefail
+    
+    # Source nix
+    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+    
+    # Add to .bashrc
+    echo '. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' >> ~/.bashrc
+    
+    # Test nix installation
+    nix --version
+    
+    echo "x86_64 Nix build environment ready!"
+
+# SSH settings
+ssh:
+  loadDotSSHPubKeys: true
