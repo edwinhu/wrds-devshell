@@ -3,9 +3,15 @@ set -e
 
 echo "🚀 Deploying WRDS development environments..."
 
-# Build both environments
-echo "📦 Building environments..."
-./build.sh
+# Check if build artifacts exist and are recent
+if [[ -f "wrds-devshell.portable" && -f "environment.sh" ]]; then
+    echo "📦 Using existing build artifacts..."
+    echo "   • CLI tools: $(ls -lh wrds-devshell.portable | awk '{print $5}') ($(date -r wrds-devshell.portable +'%Y-%m-%d %H:%M'))"
+    echo "   • Data science: $(ls -lh environment.sh | awk '{print $5}') ($(date -r environment.sh +'%Y-%m-%d %H:%M'))"
+else
+    echo "📦 Building environments..."
+    ./build.sh
+fi
 
 echo ""
 echo "📤 Uploading to WRDS..."

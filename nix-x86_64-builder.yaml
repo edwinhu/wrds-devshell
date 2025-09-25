@@ -14,7 +14,7 @@ memory: "8GiB"
 
 # Mount our project directory
 mounts:
-- location: "~/projects/wrds/wrds-devshell"
+- location: "~/projects/wrds-devshell"
   writable: true
 
 # Provision script to install Nix
