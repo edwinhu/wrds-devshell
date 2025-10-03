@@ -1,85 +1,64 @@
 #!/usr/bin/env bash
 set -e
 
-echo "🚀 Deploying WRDS development environments..."
+CLI_BUNDLE="wrds-devshell.portable"
+DS_BUNDLE="environment.sh"
+REMOTE_HOST="wrds"
 
-# Check if build artifacts exist and are recent
-if [[ -f "wrds-devshell.portable" && -f "environment.sh" ]]; then
-    echo "📦 Using existing build artifacts..."
-    echo "   • CLI tools: $(ls -lh wrds-devshell.portable | awk '{print $5}') ($(date -r wrds-devshell.portable +'%Y-%m-%d %H:%M'))"
-    echo "   • Data science: $(ls -lh environment.sh | awk '{print $5}') ($(date -r environment.sh +'%Y-%m-%d %H:%M'))"
-else
-    echo "📦 Building environments..."
-    ./build.sh
+echo "🚀 Deploying WRDS development environments to $REMOTE_HOST..."
+
+# --- 1. Check for Artifacts ---
+if [[ ! -f "$CLI_BUNDLE" || ! -f "$DS_BUNDLE" ]]; then
+    echo "❌ Build artifacts not found. Run ./build.sh first."
+    exit 1
 fi
 
+echo "📦 Using build artifacts:"
+ls -lh "$CLI_BUNDLE" "$DS_BUNDLE"
+
+# --- 2. Upload Artifacts ---
 echo ""
-echo "📤 Uploading to WRDS..."
+echo "📤 Uploading to $REMOTE_HOST..."
+# Use rclone for efficient file transfer.
+rclone copy "$CLI_BUNDLE" "$REMOTE_HOST":
+rclone copy "$DS_BUNDLE" "$REMOTE_HOST":
 
-# Upload CLI tools bundle
-echo "Uploading CLI tools bundle..."
-cat wrds-devshell.portable | ssh wrds "cat > wrds-devshell.portable"
-
-# Upload data science environment
-echo "Uploading data science environment..."
-cat environment.sh | ssh wrds "cat > environment.sh"
-
+# --- 3. Install on Remote ---
 echo ""
-echo "⚙️  Installing on WRDS..."
+echo "⚙️  Installing on $REMOTE_HOST..."
 
-# Install CLI tools to ~/.local/bin
-echo "Installing CLI tools..."
-ssh wrds '
-mkdir -p ~/.local/bin
-cp wrds-devshell.portable ~/.local/bin/wrds-tools
-chmod +x ~/.local/bin/wrds-tools
-rm -f wrds-devshell.portable
+# Combine all remote commands into a single SSH session for efficiency.
+ssh "$REMOTE_HOST" '
+    set -e # Ensure remote script also exits on error
 
-echo "✅ CLI tools bundle installed to ~/.local/bin/wrds-tools"
-'
+    echo "Installing CLI tools..."
+    mkdir -p ~/.local/bin
+    mv -f wrds-devshell.portable ~/.local/bin/wrds-tools
+    chmod +x ~/.local/bin/wrds-tools
+    echo "✅ CLI tools installed to ~/.local/bin/wrds-tools"
 
-# Install data science environment to ~/.local
-echo "Installing data science environment..."
-ssh wrds '
-# Only install if not already present
-if [ ! -d ~/.local/wrds-data-science ]; then
-    mkdir -p ~/.local && bash environment.sh --output-directory ~/.local --env-name wrds-data-science
-    echo "✅ Data science environment installed"
-else
-    echo "✅ Data science environment already exists"
-fi
+    echo "Installing data science environment..."
+    # Only install if not already present
+    if [ ! -d ~/.local/wrds-data-science ]; then
+        bash environment.sh --output-directory ~/.local --env-name wrds-data-science
+        echo "✅ Data science environment installed."
+    else
+        echo "✅ Data science environment already exists, skipping installation."
+    fi
 
-# Create/update symlinks for key tools
-mkdir -p ~/.local/bin
-ln -sf ~/.local/wrds-data-science/bin/euporie ~/.local/bin/euporie 2>/dev/null || true
-ln -sf ~/.local/wrds-data-science/bin/python ~/.local/bin/python-wrds 2>/dev/null || true
+    # Add data science tools to PATH if not already there
+    if ! grep -q "wrds-data-science/bin" ~/.shell_env 2>/dev/null; then
+        echo "" >> ~/.shell_env
+        echo "# Added by wrds-devshell deployment" >> ~/.shell_env
+        echo "export PATH=\"\$HOME/.local/wrds-data-science/bin:\$PATH\"" >> ~/.shell_env
+        echo "✅ PATH configured in ~/.shell_env"
+    fi
 
-# Clean up uploaded file
-rm -f environment.sh
-
-echo "✅ Data science tools configured"
+    # Clean up uploaded installer
+    rm -f environment.sh
 '
 
 echo ""
 echo "✅ Deployment complete!"
 echo ""
-echo "🖥️  On WRDS, you can now use:"
-echo ""
-echo "🛠️  CLI Tools (directly in PATH):"
-echo "   wrds-tools                   # Enter devshell with all tools"
-echo "   wrds-tools tw file.csv       # Run tabiew on a file"
-echo "   tw file.csv                  # Direct access (after PATH reload)"
-echo "   rg \"pattern\" .              # Search text files"
-echo "   fd filename                  # Find files"
-echo ""
-echo "📊 Data Science (directly in PATH):"
-echo "   euporie console              # Jupyter console with SAS kernel"
-echo "   euporie notebook             # Jupyter notebook interface"
-echo "   python-wrds                  # Python with all dependencies"
-echo ""
-echo "Or activate full conda environment:"
-echo "   source ~/.local/bin/activate-wrds-data-science"
-echo ""
-echo "📏 Deployed sizes:"
-echo "   CLI tools: $(du -sh wrds-devshell.portable | cut -f1)"
-echo "   Data science: $(du -sh environment.sh | cut -f1)"
+echo "🖥️  On WRDS, reload your shell and you can now use the tools."

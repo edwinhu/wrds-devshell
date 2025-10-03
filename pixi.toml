@@ -8,6 +8,8 @@ platforms = ["linux-64"]
 # Core data science environment
 euporie = ">=2.8"
 sas_kernel = "*"
+jupyter = "*"
+pixi-pack = "*"
 
 [tasks]
 

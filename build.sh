@@ -1,120 +1,83 @@
 #!/usr/bin/env bash
 set -e
 
-echo "🚀 Building WRDS portable environments..."
+# --- Configuration ---
+# Define a single target system for consistent, portable builds.
+TARGET_SYSTEM="x86_64-linux"
+TARGET_SHELL_ATTR=".#devShells.$TARGET_SYSTEM.default"
+CLI_OUTPUT_FILE="wrds-devshell.portable"
+DATA_SCIENCE_OUTPUT_FILE="environment.sh"
 
-# Build Nix DevShell Bundle
+echo "🚀 Building WRDS portable environments for $TARGET_SYSTEM..."
+
+# --- 1. Build Nix DevShell Bundle ---
 echo ""
 echo "1️⃣ Building CLI tools bundle..."
 
-# Note: This requires building from a Linux system or using remote builders
-# On macOS, you may need to use a remote Linux builder or Docker
+# The build command is now simpler and directly produces the target executable.
+NIX_BUNDLE_CMD="nix bundle --bundler github:DavHau/nix-portable -o $CLI_OUTPUT_FILE '$TARGET_SHELL_ATTR'"
 
-# Check if we're on Linux and detect architecture
-if [[ $(uname) == "Linux" ]]; then
-    ARCH=$(uname -m)
-    case $ARCH in
-        x86_64)
-            SYSTEM="x86_64-linux"
-            ;;
-        aarch64)
-            SYSTEM="aarch64-linux"
-            ;;
-        *)
-            echo "Warning: Unsupported architecture $ARCH, defaulting to x86_64-linux"
-            SYSTEM="x86_64-linux"
-            ;;
-    esac
-    TARGET_SHELL=".#devShells.$SYSTEM.default"
-else
-    echo "Warning: Building from non-Linux system. This may require remote builders."
-    SYSTEM="x86_64-linux"
-    TARGET_SHELL="github:edwinhu/wrds-devshell#devShells.x86_64-linux.default"
-fi
+# On macOS, we need a Linux builder (Lima). On Linux, we can build directly.
+if [[ "$(uname)" == "Darwin" ]]; then
+    echo "macOS detected. Building in x86_64 Lima VM..."
 
-echo "Target system: $SYSTEM"
-echo "Target shell: $TARGET_SHELL"
-
-# Build the bundle using nix-portable bundler
-if [[ $(uname) == "Linux" ]]; then
-    # Build directly on Linux
-    nix bundle --bundler github:DavHau/nix-portable \
-        -o wrds-devshell \
-        "$TARGET_SHELL"
-else
-    # Build using x86_64 Lima VM on macOS
-    echo "Building in x86_64 Lima VM..."
-
-    # Ensure x86_64 Lima VM exists and is running
-    if ! limactl list nix-x86_64-builder 2>/dev/null | grep -q "nix-x86_64-builder"; then
-        echo "Creating x86_64 Lima VM..."
-        limactl create --name nix-x86_64-builder nix-x86_64-builder.yaml
-    fi
-
-    if ! limactl list nix-x86_64-builder 2>/dev/null | grep -q "Running"; then
+    # Ensure Lima VM is running
+    if ! limactl list nix-x86_64-builder --json | grep '"status":"Running"'; then
         echo "Starting x86_64 Lima VM..."
-        limactl start nix-x86_64-builder
+        limactl start nix-x86_64-builder || {
+            echo "Lima VM not found. Creating it..."
+            limactl create --name nix-x86_64-builder nix-x86_64-builder.yaml && \
+            limactl start nix-x86_64-builder
+        }
     fi
 
-    # Build in the mounted directory (already has files)
-    limactl shell nix-x86_64-builder -- bash -c "
-        cd /Users/vwh7mb/projects/wrds-devshell &&
+    # Execute the simplified build command in the VM.
+    # It works directly on the mounted project directory.
+    limactl shell nix-x86_64-builder --workdir "$(pwd)" -- bash -c "
         . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh &&
-        nix bundle --bundler github:DavHau/nix-portable .#devShells.x86_64-linux.default -o wrds-devshell-x86_64 &&
-        ACTUAL_PATH=\$(readlink -f wrds-devshell-x86_64) &&
-        cp \$ACTUAL_PATH/bin/wrds-tools ./wrds-devshell.portable &&
-        chmod +x ./wrds-devshell.portable
+        $NIX_BUNDLE_CMD
     "
-
-    # Copy result back to host (file already exists in mounted directory)
-    if [[ -f wrds-devshell.portable ]]; then
-        echo "✅ Found wrds-devshell.portable, no need to copy"
-    else
-        echo "❌ wrds-devshell.portable not created by Lima VM"
-        exit 1
-    fi
-    echo "✅ x86_64 Lima build complete"
+else
+    echo "Linux detected. Building directly..."
+    eval "$NIX_BUNDLE_CMD"
 fi
 
-# The executable is already created by the Lima VM build process
-if [[ ! -f wrds-devshell.portable ]]; then
-    echo "Error: wrds-devshell.portable not found after build"
-    echo "Checking build artifacts..."
-    ls -la wrds-devshell* 2>/dev/null || echo "No build artifacts found"
+# --- Verification ---
+if [[ ! -f "$CLI_OUTPUT_FILE" ]]; then
+    echo "❌ Build failed: $CLI_OUTPUT_FILE not found."
     exit 1
 fi
 
-chmod +x ./wrds-devshell.portable
+chmod +x "$CLI_OUTPUT_FILE"
+echo "✅ CLI tools bundle created: $CLI_OUTPUT_FILE"
+echo "📦 Size: $(du -sh $CLI_OUTPUT_FILE | cut -f1)"
 
-echo "✅ CLI tools bundle created: wrds-devshell.portable"
-echo "📦 Size: $(du -sh wrds-devshell.portable | cut -f1)"
 
-# Build Pixi Data Science Environment
+# --- 2. Build Pixi Data Science Environment ---
 echo ""
 echo "2️⃣ Building data science environment..."
 
-# Check if pixi.toml exists
 if [[ ! -f "pixi.toml" ]]; then
-    echo "❌ pixi.toml not found in current directory"
+    echo "❌ pixi.toml not found."
     exit 1
 fi
 
-# Pack the data science environment
 pixi-pack --platform linux-64 --create-executable
 
-# Check if the packed environment was created
-if [[ -f "environment.sh" ]]; then
-    echo "✅ Data science environment created: environment.sh"
-    echo "📦 Size: $(du -sh environment.sh | cut -f1)"
-else
-    echo "❌ Failed to create data science environment"
+if [[ ! -f "$DATA_SCIENCE_OUTPUT_FILE" ]]; then
+    echo "❌ Failed to create data science environment."
     exit 1
 fi
 
+echo "✅ Data science environment created: $DATA_SCIENCE_OUTPUT_FILE"
+echo "📦 Size: $(du -sh $DATA_SCIENCE_OUTPUT_FILE | cut -f1)"
+
+
+# --- Summary ---
 echo ""
 echo "🎉 Build complete!"
 echo "📂 Created files:"
-echo "   • wrds-devshell.portable (CLI tools)"
-echo "   • environment.sh (data science)"
+echo "   • $CLI_OUTPUT_FILE (CLI tools)"
+echo "   • $DATA_SCIENCE_OUTPUT_FILE (data science)"
 echo ""
 echo "Deploy with: ./deploy.sh"
