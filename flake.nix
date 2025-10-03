@@ -16,7 +16,7 @@
         };
       in {
         devShells.default = pkgs.devshell.mkShell {
-          imports = [ (pkgs.devshell.importTOML ./devshell.toml) ];
+          imports = [ (pkgs.devshell.importTOML "${self}/devshell.toml") ];
         };
       });
 }

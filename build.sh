@@ -38,6 +38,7 @@ if [[ "$(uname)" == "Darwin" ]]; then
         . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh &&
         nix bundle --bundler github:DavHau/nix-portable '$TARGET_SHELL_ATTR' -o '$NIX_BUNDLE_OUTPUT' &&
         ACTUAL_PATH=\$(readlink -f '$NIX_BUNDLE_OUTPUT') &&
+        rm -f ./'$CLI_OUTPUT_FILE' &&
         cp \$ACTUAL_PATH/bin/wrds-tools ./'$CLI_OUTPUT_FILE' &&
         chmod +x ./'$CLI_OUTPUT_FILE'
     "
@@ -45,6 +46,7 @@ else
     echo "Linux detected. Building directly..."
     nix bundle --bundler github:DavHau/nix-portable "$TARGET_SHELL_ATTR" -o "$NIX_BUNDLE_OUTPUT"
     ACTUAL_PATH=$(readlink -f "$NIX_BUNDLE_OUTPUT")
+    rm -f "./$CLI_OUTPUT_FILE"
     cp "$ACTUAL_PATH/bin/wrds-tools" "./$CLI_OUTPUT_FILE"
     chmod +x "./$CLI_OUTPUT_FILE"
 fi
