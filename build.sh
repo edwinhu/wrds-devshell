@@ -14,8 +14,8 @@ echo "🚀 Building WRDS portable environments for $TARGET_SYSTEM..."
 echo ""
 echo "1️⃣ Building CLI tools bundle..."
 
-# The build command produces a result symlink that we need to extract
-NIX_BUNDLE_CMD="nix bundle --bundler github:DavHau/nix-portable '$TARGET_SHELL_ATTR'"
+# The build command produces an output directory that we need to extract from
+NIX_BUNDLE_OUTPUT="wrds-devshell-$TARGET_SYSTEM"
 
 # On macOS, we need a Linux builder (Lima). On Linux, we can build directly.
 if [[ "$(uname)" == "Darwin" ]]; then
@@ -31,38 +31,32 @@ if [[ "$(uname)" == "Darwin" ]]; then
         }
     fi
 
-    # Execute the simplified build command in the VM.
+    # Execute the build command in the VM.
     # It works directly on the mounted project directory.
     limactl shell nix-x86_64-builder bash -c "
         cd $(pwd) &&
         . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh &&
-        $NIX_BUNDLE_CMD
+        nix bundle --bundler github:DavHau/nix-portable '$TARGET_SHELL_ATTR' -o '$NIX_BUNDLE_OUTPUT' &&
+        ACTUAL_PATH=\$(readlink -f '$NIX_BUNDLE_OUTPUT') &&
+        cp \$ACTUAL_PATH/bin/wrds-tools ./'$CLI_OUTPUT_FILE' &&
+        chmod +x ./'$CLI_OUTPUT_FILE'
     "
 else
     echo "Linux detected. Building directly..."
-    eval "$NIX_BUNDLE_CMD"
+    nix bundle --bundler github:DavHau/nix-portable "$TARGET_SHELL_ATTR" -o "$NIX_BUNDLE_OUTPUT"
+    ACTUAL_PATH=$(readlink -f "$NIX_BUNDLE_OUTPUT")
+    cp "$ACTUAL_PATH/bin/wrds-tools" "./$CLI_OUTPUT_FILE"
+    chmod +x "./$CLI_OUTPUT_FILE"
 fi
 
-# --- Verification and Extraction ---
-# nix bundle creates a 'result' symlink to the store path
-if [[ -L "result" ]]; then
-    # Find the executable in the result
-    ACTUAL_PATH=$(readlink -f result)
-    if [[ -f "$ACTUAL_PATH/bin/wrds-tools" ]]; then
-        cp "$ACTUAL_PATH/bin/wrds-tools" "$CLI_OUTPUT_FILE"
-        chmod +x "$CLI_OUTPUT_FILE"
-        rm -f result
-        echo "✅ CLI tools bundle created: $CLI_OUTPUT_FILE"
-        echo "📦 Size: $(du -sh $CLI_OUTPUT_FILE | cut -f1)"
-    else
-        echo "❌ Build failed: wrds-tools executable not found in result"
-        ls -la "$ACTUAL_PATH"
-        exit 1
-    fi
-else
-    echo "❌ Build failed: result symlink not created"
+# --- Verification ---
+if [[ ! -f "$CLI_OUTPUT_FILE" ]]; then
+    echo "❌ Build failed: $CLI_OUTPUT_FILE not found"
     exit 1
 fi
+
+echo "✅ CLI tools bundle created: $CLI_OUTPUT_FILE"
+echo "📦 Size: $(du -sh $CLI_OUTPUT_FILE | cut -f1)"
 
 
 # --- 2. Build Pixi Data Science Environment ---

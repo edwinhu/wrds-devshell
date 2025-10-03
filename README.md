@@ -30,13 +30,13 @@ There are also flake and pixi lockfiles to pin dependencies.
 
 **What happens:**
 
-1. **CLI Tools (Nix)**: Uses x86_64 Lima VM to cross-compile
-   - Reads `devshell.toml` (27 CLI tools including databases)
-   - Creates `wrds-devshell.portable` (626MB) - single self-contained executable
+1. **CLI Tools (Nix)**: Uses x86_64 Lima VM on macOS or builds directly on Linux
+   - Reads `devshell.toml` (25 CLI tools including databases)
+   - Creates `wrds-devshell.portable` (~649MB) - single self-contained executable
 
-2. **Data Science (Pixi)**: Builds on host
-   - Reads `pixi.toml` (euporie, sas_kernel, python)
-   - Creates `environment.sh` (160MB) - self-extracting archive
+2. **Data Science (Pixi)**: Uses pixi-pack to create self-extracting archive
+   - Reads `pixi.toml` (euporie, jupyter, sas_kernel, pixi-pack, python)
+   - Creates `environment.sh` (~197MB) - self-extracting archive
 
 ### 🚀 Deployment Process
 
@@ -46,29 +46,30 @@ There are also flake and pixi lockfiles to pin dependencies.
 
 **What happens:**
 
-1. **Upload**: Streams files to WRDS via SSH
-2. **Install CLI tools**: Extracts to `~/.local/bin/wrds-tools`, individual tools available in PATH
-3. **Install data science**: Extracts to `~/.local/wrds-data-science/`, creates symlinks
+1. **Upload**: Transfers files to WRDS via rclone
+2. **Install CLI tools**: Moves to `~/.local/bin/wrds-tools`
+3. **Install data science**: Extracts to `~/.local/wrds-data-science/`
+4. **PATH setup**: Adds `~/.local/wrds-data-science/bin` to `~/.shell_env`
+
+**Note**: Run `./build.sh` first when configs change. `./deploy.sh` only uploads existing artifacts.
 
 ### 🔧 Runtime on WRDS
 
-**Automatic setup** via `~/.wrds-setup` (sourced on login):
+**Automatic setup** via `~/.shell_env` (sourced on login):
 
 ```bash
-# PATH includes ~/.local/bin
-export PATH="$HOME/.local/bin:$PATH"
-
-# Tools initialized automatically
-eval "$(starship init bash)"      # Prompt
-eval "$(zoxide init bash --cmd cd)"  # Smart cd
-eval "$(direnv hook bash)"        # Environment management
+# PATH includes data science tools
+export PATH="$HOME/.local/wrds-data-science/bin:$PATH"
 ```
 
-**Available immediately on SSH:**
+**Available after shell reload:**
 
 ```bash
 ssh wrds
-# All tools work immediately:
+source ~/.shell_env  # Or start new shell
+
+# All tools work:
+wrds-tools             # Enter devshell with all CLI tools
 fzf                    # Fuzzy finder
 rg "pattern" .         # Search
 fd filename            # Find files
@@ -77,7 +78,8 @@ tw data.csv           # View CSV files
 sqlite3 database.db   # SQLite database CLI
 duckdb                # DuckDB analytical database
 euporie console       # Jupyter with SAS
-python-wrds           # Python 3.13.7
+jupyter console       # Standard Jupyter
+pixi-pack             # Package pixi environments
 ```
 
 ## Tools Included

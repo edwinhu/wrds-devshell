@@ -64,6 +64,8 @@ This project creates portable development environments for WRDS (Wharton Researc
 
 - **euporie** 2.8.13 - Enhanced Jupyter console/notebook
 - **sas_kernel** - SAS kernel for Jupyter
+- **jupyter** - Standard Jupyter console and notebook
+- **pixi-pack** - Package pixi environments for deployment
 - **Python 3.13.7** - Full Python environment
 
 ## Build System
@@ -75,21 +77,21 @@ This project creates portable development environments for WRDS (Wharton Researc
 - **Auto-managed**: build.sh starts/manages VM automatically
 
 ### Build Process
-1. **CLI Tools**: Uses Lima VM with Nix + nix-portable bundler
-2. **Data Science**: Uses host pixi + pixi-pack
-3. **Output**: `wrds-devshell.portable` (~629MB) + `environment.sh` (~160MB)
+1. **CLI Tools**: Uses Lima VM on macOS or direct build on Linux with Nix + nix-portable bundler
+2. **Data Science**: Uses pixi + pixi-pack to create self-extracting archive
+3. **Output**: `wrds-devshell.portable` (~649MB) + `environment.sh` (~197MB)
 
 ## Deployment Process
 
-### SSH Streaming (not rclone)
-- Uses SSH pipe streaming for file transfer
-- Handles large files without requiring rclone setup
-- Installs to `~/.local/bin/` and `~/.local/wrds-data-science/`
+### File Transfer
+- Uses rclone for efficient file transfer
+- Handles large files with resume capability
+- Uploads to WRDS home directory, then moves to final location
 
 ### Shell Integration
-- Uses `~/.wrds-setup` script (sourced automatically)
-- All tools available immediately on SSH login
-- No verbose setup messages
+- Adds `~/.local/wrds-data-science/bin` to PATH via `~/.shell_env`
+- CLI tools available via `~/.local/bin/wrds-tools`
+- All tools available after shell reload
 
 ## File Structure
 
@@ -107,34 +109,37 @@ wrds-devshell/
 ## Critical Requirements
 
 ### build.sh MUST:
-1. Detect macOS and use x86_64 Lima VM automatically
+1. Detect OS (macOS uses Lima VM, Linux builds directly)
 2. Build nix-portable bundle with all 25 CLI tools
-3. Build pixi data science environment
-4. Handle git uncommitted changes gracefully
+3. Build pixi data science environment with pixi-pack
+4. Extract executable from nix bundle output
 5. Complete successfully with proper error handling
 
 ### deploy.sh MUST:
-1. Build both environments (call build.sh)
-2. Upload files via SSH streaming (not rclone)
+1. Check for existing build artifacts (does NOT build)
+2. Upload files via rclone
 3. Install CLI tools to ~/.local/bin/wrds-tools
 4. Install data science to ~/.local/wrds-data-science/
-5. Create proper symlinks and PATH integration
-6. Work with existing ~/.wrds-setup shell integration
+5. Add wrds-data-science/bin to PATH in ~/.shell_env
+6. Single SSH session for all remote commands
 
 ## Current Status
 
 ### Working
-- ✅ Manual CLI tool installations (18/25 tools)
-- ✅ Data science environment via pixi
-- ✅ Shell integration via ~/.wrds-setup
-- ✅ Lima VM x86_64 builds
-- ✅ All tools available on SSH login
+- ✅ All 25 CLI tools in devshell.toml
+- ✅ Data science environment with jupyter, euporie, pixi-pack
+- ✅ Shell integration via ~/.shell_env
+- ✅ Lima VM x86_64 builds on macOS
+- ✅ Direct builds on Linux servers
+- ✅ Simplified build and deploy workflow
+- ✅ Rclone-based deployment
 
-### Issues to Fix
-- ❌ build.sh has path and extraction issues
-- ❌ deploy.sh conflicts with existing setup
-- ❌ nix-portable bundles have initialization problems
-- ❌ Disk quota issues (resolved with 3.5GB cleanup)
+### Recent Improvements
+- ✅ Removed unused nix-builder.yaml
+- ✅ Simplified build.sh and deploy.sh scripts
+- ✅ Separated build and deploy (build when configs change, deploy to upload)
+- ✅ Added jupyter and pixi-pack to data science tools
+- ✅ PATH configuration via ~/.shell_env instead of symlinks
 
 ## Key Technical Details
 
