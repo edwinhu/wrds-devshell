@@ -14,8 +14,8 @@ echo "🚀 Building WRDS portable environments for $TARGET_SYSTEM..."
 echo ""
 echo "1️⃣ Building CLI tools bundle..."
 
-# The build command is now simpler and directly produces the target executable.
-NIX_BUNDLE_CMD="nix bundle --bundler github:DavHau/nix-portable -o $CLI_OUTPUT_FILE '$TARGET_SHELL_ATTR'"
+# The build command produces a result symlink that we need to extract
+NIX_BUNDLE_CMD="nix bundle --bundler github:DavHau/nix-portable '$TARGET_SHELL_ATTR'"
 
 # On macOS, we need a Linux builder (Lima). On Linux, we can build directly.
 if [[ "$(uname)" == "Darwin" ]]; then
@@ -33,7 +33,8 @@ if [[ "$(uname)" == "Darwin" ]]; then
 
     # Execute the simplified build command in the VM.
     # It works directly on the mounted project directory.
-    limactl shell nix-x86_64-builder --workdir "$(pwd)" -- bash -c "
+    limactl shell nix-x86_64-builder bash -c "
+        cd $(pwd) &&
         . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh &&
         $NIX_BUNDLE_CMD
     "
@@ -42,15 +43,26 @@ else
     eval "$NIX_BUNDLE_CMD"
 fi
 
-# --- Verification ---
-if [[ ! -f "$CLI_OUTPUT_FILE" ]]; then
-    echo "❌ Build failed: $CLI_OUTPUT_FILE not found."
+# --- Verification and Extraction ---
+# nix bundle creates a 'result' symlink to the store path
+if [[ -L "result" ]]; then
+    # Find the executable in the result
+    ACTUAL_PATH=$(readlink -f result)
+    if [[ -f "$ACTUAL_PATH/bin/wrds-tools" ]]; then
+        cp "$ACTUAL_PATH/bin/wrds-tools" "$CLI_OUTPUT_FILE"
+        chmod +x "$CLI_OUTPUT_FILE"
+        rm -f result
+        echo "✅ CLI tools bundle created: $CLI_OUTPUT_FILE"
+        echo "📦 Size: $(du -sh $CLI_OUTPUT_FILE | cut -f1)"
+    else
+        echo "❌ Build failed: wrds-tools executable not found in result"
+        ls -la "$ACTUAL_PATH"
+        exit 1
+    fi
+else
+    echo "❌ Build failed: result symlink not created"
     exit 1
 fi
-
-chmod +x "$CLI_OUTPUT_FILE"
-echo "✅ CLI tools bundle created: $CLI_OUTPUT_FILE"
-echo "📦 Size: $(du -sh $CLI_OUTPUT_FILE | cut -f1)"
 
 
 # --- 2. Build Pixi Data Science Environment ---
