@@ -7,9 +7,10 @@ This project creates portable development environments for WRDS (Wharton Researc
 **Goal**: Deploy modern CLI tools and data science environments to WRDS without requiring system dependencies.
 
 **Architecture**:
-- **CLI Tools**: Nix → nix-portable → single executable (25 tools)
+- **CLI Tools**: Nix → nix-portable → single executable (28 tools)
 - **Data Science**: Pixi → pixi-pack → self-extracting archive
 - **Build System**: x86_64 Lima VM for cross-compilation on macOS
+- **Runtime**: proot mode for nix-portable (bwrap requires user namespaces)
 
 ## Core Workflow
 
@@ -23,12 +24,13 @@ This project creates portable development environments for WRDS (Wharton Researc
 
 **CRITICAL**: These scripts MUST work. The entire system depends on them.
 
-## CLI Tools (25 total in devshell.toml)
+## CLI Tools (28 total in devshell.toml)
 
 ### Essential Tools
 - **tw (tabiew)** - View CSV/TSV files
 - **bat** - Syntax highlighting cat
 - **rg (ripgrep)** - Fast text search
+- **rga (ripgrep-all)** - Search in PDFs, DOCX, XLSX, archives, and other binary formats
 - **fd** - Fast file finder
 - **fzf** - Fuzzy finder
 - **eza** - Modern ls replacement
@@ -97,12 +99,13 @@ This project creates portable development environments for WRDS (Wharton Researc
 
 ```
 wrds-devshell/
-├── devshell.toml          # 25 CLI tools definition
+├── devshell.toml          # 28 CLI tools definition
 ├── pixi.toml             # Data science packages
 ├── flake.nix             # Nix configuration
 ├── build.sh              # MUST WORK - builds both environments
 ├── deploy.sh             # MUST WORK - deploys to WRDS
 ├── nix-x86_64-builder.yaml  # Lima VM config
+├── .claude/Claude.md     # Comprehensive troubleshooting guide
 └── README.md             # User documentation
 ```
 
@@ -110,7 +113,7 @@ wrds-devshell/
 
 ### build.sh MUST:
 1. Detect OS (macOS uses Lima VM, Linux builds directly)
-2. Build nix-portable bundle with all 25 CLI tools
+2. Build nix-portable bundle with all 28 CLI tools
 3. Build pixi data science environment with pixi-pack
 4. Extract executable from nix bundle output
 5. Complete successfully with proper error handling
@@ -121,18 +124,20 @@ wrds-devshell/
 3. Install CLI tools to ~/.local/bin/wrds-tools
 4. Install data science to ~/.local/wrds-data-science/
 5. Add wrds-data-science/bin to PATH in ~/.shell_env
-6. Single SSH session for all remote commands
+6. Configure NP_RUNTIME=proot in ~/.shell_env (required for WRDS)
+7. Single SSH session for all remote commands
 
 ## Current Status
 
 ### Working
-- ✅ All 25 CLI tools in devshell.toml
+- ✅ All 28 CLI tools in devshell.toml (including ripgrep-all)
 - ✅ Data science environment with jupyter, euporie, pixi-pack
 - ✅ Shell integration via ~/.shell_env
 - ✅ Lima VM x86_64 builds on macOS
 - ✅ Direct builds on Linux servers
 - ✅ Simplified build and deploy workflow
 - ✅ Rclone-based deployment
+- ✅ nix-portable proot runtime configuration for WRDS
 
 ### Recent Improvements
 - ✅ Removed unused nix-builder.yaml
@@ -140,6 +145,8 @@ wrds-devshell/
 - ✅ Separated build and deploy (build when configs change, deploy to upload)
 - ✅ Added jupyter and pixi-pack to data science tools
 - ✅ PATH configuration via ~/.shell_env instead of symlinks
+- ✅ Added ripgrep-all (rga) for searching inside binary formats
+- ✅ Configured proot runtime for nix-portable (bwrap requires user namespaces)
 
 ## Key Technical Details
 
@@ -148,8 +155,9 @@ wrds-devshell/
 - **Solution**: x86_64 Lima VM with QEMU emulation
 
 ### Tool Sources
-- **devshell.toml**: Must include ALL 25 CLI tools from ../pixi.toml
-- **Versions**: Use latest versions, not system packages (jq 1.7.1, rclone 1.71.0)
+- **devshell.toml**: Must include ALL 28 CLI tools (including ripgrep-all)
+- **Versions**: Use latest versions, not system packages (jq 1.7.1, rclone 1.71.0, rga 0.10.9)
+- **Runtime**: nix-portable uses proot on WRDS (bwrap requires user namespaces)
 
 ### Deployment Target
 - **Location**: WRDS Linux servers
@@ -167,12 +175,26 @@ When working properly:
 
 # On WRDS after deployment
 ssh wrds
-# All 25 CLI tools work immediately:
+# All 28 CLI tools work immediately:
 btop           # Resource monitor
 gh --version   # GitHub CLI
 yazi          # File manager
 tw data.csv   # View CSV files
+rga "text" file.pdf  # Search in PDFs
 euporie console # Jupyter with SAS
 ```
 
 **The build.sh and deploy.sh scripts are the core of this project and MUST work reliably.**
+
+## nix-portable Runtime Configuration
+
+**CRITICAL**: WRDS servers require proot runtime for nix-portable.
+
+### Why proot?
+- **bwrap** (default): Requires user namespaces, fails with "unable to exec nix-store" error on WRDS
+- **proot** (fallback): Works without user namespaces, compatible with WRDS
+
+### How It Works
+- `deploy.sh` automatically adds `export NP_RUNTIME=proot` to `~/.shell_env`
+- All wrds-tools commands use proot runtime
+- See `.claude/Claude.md` for comprehensive troubleshooting

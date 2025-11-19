@@ -20,6 +20,12 @@ help = "Fast recursive grep"
 category = "search"
 
 [[commands]]
+package = "ripgrep-all"
+name = "rga"
+help = "Search in PDFs, DOCX, XLSX, archives, and other formats"
+category = "search"
+
+[[commands]]
 package = "fd"
 help = "Fast file finder"
 category = "search"

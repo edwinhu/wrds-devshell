@@ -54,6 +54,14 @@ ssh "$REMOTE_HOST" '
         echo "✅ PATH configured in ~/.shell_env"
     fi
 
+    # Configure nix-portable runtime for WRDS (proot works, bwrap requires user namespaces)
+    if ! grep -q "NP_RUNTIME" ~/.shell_env 2>/dev/null; then
+        echo "" >> ~/.shell_env
+        echo "# nix-portable runtime configuration - use proot on WRDS" >> ~/.shell_env
+        echo "export NP_RUNTIME=proot" >> ~/.shell_env
+        echo "✅ nix-portable runtime configured (proot)"
+    fi
+
     # Clean up uploaded installer
     rm -f environment.sh
 '

@@ -31,8 +31,8 @@ There are also flake and pixi lockfiles to pin dependencies.
 **What happens:**
 
 1. **CLI Tools (Nix)**: Uses x86_64 Lima VM on macOS or builds directly on Linux
-   - Reads `devshell.toml` (25 CLI tools including databases)
-   - Creates `wrds-devshell.portable` (~649MB) - single self-contained executable
+   - Reads `devshell.toml` (28 CLI tools including databases)
+   - Creates `wrds-devshell.portable` (~664MB) - single self-contained executable
 
 2. **Data Science (Pixi)**: Uses pixi-pack to create self-extracting archive
    - Reads `pixi.toml` (euporie, jupyter, sas_kernel, pixi-pack, python)
@@ -50,6 +50,7 @@ There are also flake and pixi lockfiles to pin dependencies.
 2. **Install CLI tools**: Moves to `~/.local/bin/wrds-tools`
 3. **Install data science**: Extracts to `~/.local/wrds-data-science/`
 4. **PATH setup**: Adds `~/.local/wrds-data-science/bin` to `~/.shell_env`
+5. **Runtime config**: Sets `NP_RUNTIME=proot` in `~/.shell_env` (required for WRDS)
 
 **Note**: Run `./build.sh` first when configs change. `./deploy.sh` only uploads existing artifacts.
 
@@ -60,6 +61,9 @@ There are also flake and pixi lockfiles to pin dependencies.
 ```bash
 # PATH includes data science tools
 export PATH="$HOME/.local/wrds-data-science/bin:$PATH"
+
+# nix-portable runtime (proot works on WRDS, bwrap requires user namespaces)
+export NP_RUNTIME=proot
 ```
 
 **Available after shell reload:**
@@ -84,22 +88,49 @@ pixi-pack             # Package pixi environments
 
 ## Tools Included
 
-### CLI Tools Bundle (devshell.toml)
+### CLI Tools Bundle (28 tools in devshell.toml)
 
+**Search & Find:**
 - **tabiew** (`tw`) - View and query CSV/TSV files
-- **bat** - Cat with syntax highlighting
 - **ripgrep** (`rg`) - Fast recursive text search
+- **ripgrep-all** (`rga`) - Search in PDFs, DOCX, XLSX, archives, and other binary formats
 - **fd** - Fast file finder
 - **fzf** - Fuzzy finder
+
+**File & Display:**
+- **bat** - Cat with syntax highlighting
 - **eza** - Modern ls replacement
-- **zoxide** - Smarter cd command
+- **yazi** - Terminal file manager
+
+**Development:**
+- **gh** - GitHub CLI
 - **jq** - JSON processor (1.7.1, updated from system 1.6)
-- **zsh** - Advanced shell
+- **xan** - CSV toolkit
+
+**System:**
+- **btop** - Resource monitor
+- **dust** - Disk usage analyzer
+- **zoxide** - Smarter cd command
 - **starship** - Cross-shell prompt
-- **rclone** - Cloud storage sync (1.71.0, updated from system 1.70.3)
 - **direnv** - Environment variable management
-- **sqlite3** - SQLite database engine CLI (3.50.2)
-- **duckdb** - In-process SQL OLAP database CLI (1.3.2)
+- **stow** - Symlink farm manager
+
+**Document & Media:**
+- **tectonic** - Modern TeX/LaTeX engine
+- **poppler** - PDF manipulation tools
+- **resvg** - SVG renderer
+- **tldr** - Simplified man pages
+- **tailspin** - Log file highlighter
+
+**Data & Compression:**
+- **sqlite** - SQLite database engine CLI
+- **duckdb** - In-process SQL OLAP database CLI
+- **p7zip** - 7-Zip compression
+- **rclone** - Cloud storage sync (1.71.0, updated from system 1.70.3)
+- **parallel** - GNU parallel execution
+
+**Shell:**
+- **zsh** - Advanced shell
 
 ### Data Science Environment (pixi.toml)
 
@@ -267,6 +298,32 @@ ssh wrds 'which fzf starship zoxide direnv tw sqlite3 duckdb'
 ssh wrds 'euporie --version && python-wrds --version'
 ssh wrds 'sqlite3 --version && duckdb --version'
 ```
+
+### nix-portable Runtime Issues
+
+If tools fail with `error: unable to exec .../nix-store: No such file or directory`:
+
+**Cause**: The default bwrap runtime requires user namespaces not available on WRDS.
+
+**Solution**: Ensure `NP_RUNTIME=proot` is set in `~/.shell_env` (deployment does this automatically).
+
+**Verify**:
+```bash
+# Check if NP_RUNTIME is configured
+ssh wrds "grep NP_RUNTIME ~/.shell_env"
+
+# Should output: export NP_RUNTIME=proot
+
+# Test with fresh login shell
+ssh wrds "bash -l -c '~/.local/bin/wrds-tools fd --version'"
+```
+
+**Manual fix** (if needed):
+```bash
+ssh wrds "echo 'export NP_RUNTIME=proot' >> ~/.shell_env"
+```
+
+**Reference**: See `.claude/Claude.md` for comprehensive troubleshooting guide.
 
 ## Architecture Notes
 
